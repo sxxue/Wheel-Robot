@@ -79,16 +79,26 @@ class GeminiReasoningService:
             f"User Natural Language Command: '{command_text}'\n"
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
-            "Analyze the spatial position of the target and obstacles, then generate a step-by-step navigation plan in pure JSON format:\n"
+            "CRITICAL NAVIGATION RULES:\n"
+            "1. Differentiate between INTERMEDIATE WAYPOINTS (e.g. [3] Free Corridor, detour lane) and the FINAL DESTINATION (e.g. [2] Blue Door).\n"
+            "2. The command plan MUST NOT STOP inside the corridor. It must execute the complete multi-leg journey:\n"
+            "   - Leg 1: Turn towards the detour / clear corridor [3].\n"
+            "   - Leg 2: Drive forward to clear the obstacle [1].\n"
+            "   - Leg 3: Turn to face the final destination [2] (Blue Door) directly.\n"
+            "   - Leg 4: Drive forward along the clear path to reach the final destination [2].\n"
+            "   - Leg 5: STOP at the final destination.\n\n"
+            "Output pure JSON in this exact structure:\n"
             "{\n"
             '  "status": "success",\n'
-            '  "identified_target": "[2] Target Description",\n'
-            '  "identified_obstacles": ["[1] Obstacle Description"],\n'
-            '  "explanation": "Clear spatial reasoning explaining the route to avoid obstacles and reach the goal.",\n'
+            '  "identified_target": "[2] Blue Door (Final Goal)",\n'
+            '  "identified_waypoint": "[3] Free Corridor (Intermediate Waypoint)",\n'
+            '  "identified_obstacles": ["[1] Obstacle"],\n'
+            '  "explanation": "Detailed step-by-step spatial route explaining how the robot passes the obstacle via the waypoint and reaches the final goal.",\n'
             '  "commands": [\n'
-            '    {"action": "TURN_RIGHT", "degrees": 30, "speed": 160},\n'
-            '    {"action": "FORWARD", "duration_s": 1.2, "speed": 170},\n'
-            '    {"action": "TURN_LEFT", "degrees": 30, "speed": 160},\n'
+            '    {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},\n'
+            '    {"action": "FORWARD", "duration_s": 1.4, "speed": 160},\n'
+            '    {"action": "TURN_LEFT", "degrees": 50, "speed": 160},\n'
+            '    {"action": "FORWARD", "duration_s": 2.0, "speed": 160},\n'
             '    {"action": "STOP", "duration_s": 0, "speed": 0}\n'
             '  ]\n'
             "}"
@@ -155,13 +165,14 @@ class GeminiReasoningService:
         if is_close:
             explanation = (
                 f"[SIMULATED GEMINI REASONING] Obstacle [1] detected ahead at {tof_distance_mm}mm. "
-                f"Steering right into [3] Free Corridor, advancing 1.2s, then realigning towards {target}."
+                f"Executing multi-leg route: (1) Turn right towards [3] Free Corridor, (2) Advance 1.4s past obstacle [1], "
+                f"(3) Turn left 50° to face {target} directly, and (4) Drive forward 2.0s to arrive at {target}."
             )
             commands = [
-                {"action": "TURN_RIGHT", "degrees": 30, "speed": 160},
-                {"action": "FORWARD", "duration_s": 1.2, "speed": 170},
-                {"action": "TURN_LEFT", "degrees": 35, "speed": 160},
-                {"action": "FORWARD", "duration_s": 1.0, "speed": 150},
+                {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
+                {"action": "TURN_LEFT", "degrees": 50, "speed": 160},
+                {"action": "FORWARD", "duration_s": 2.0, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
         else:
@@ -169,7 +180,7 @@ class GeminiReasoningService:
                 f"[SIMULATED GEMINI REASONING] Path clear ({tof_distance_mm}mm). Direct approach toward {target}."
             )
             commands = [
-                {"action": "FORWARD", "duration_s": 1.5, "speed": 180},
+                {"action": "FORWARD", "duration_s": 2.2, "speed": 180},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
 
@@ -178,6 +189,7 @@ class GeminiReasoningService:
             "is_mock": True,
             "provider": "Simulation (Waiting for Gemini API Key)",
             "identified_target": target,
+            "identified_waypoint": "[3] Free Corridor",
             "identified_obstacles": ["[1] Obstacle"],
             "explanation": explanation,
             "commands": commands

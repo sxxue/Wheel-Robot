@@ -95,3 +95,18 @@
 | :--- | :--- | :--- | :--- |
 | *Initial Setup* | Obstacle Sensor | VL53L0X (ToF I2C) vs. HC-SR04 (Ultrasonic) | **VL53L0X Selected**: Millimeter accuracy (Time-of-Flight laser), narrow field of view, no ultrasonic acoustic echo reflections, 3.3V logic compatible. |
 | *Initial Setup* | Camera Interface | Pi Camera v2 (CSI) vs. USB Webcam | **Pi Camera v2 Selected**: Hardware MIPI CSI-2 bus bypasses USB bus bandwidth limits, saving CPU cycles on Pi Zero 2 W. |
+| *Planning Phase* | Navigation Horizon | Single-Shot Open-Loop vs. Multi-Stage Closed-Loop (Receding Horizon) | **Multi-Stage Closed-Loop Selected**: In dynamic multi-obstacle environments, an initial open-loop sequence only reaches the intermediate detour (corridor). Closed-loop navigation splits the journey into Waypoint Clearing -> Re-sensing snapshot -> Final Goal Approach. |
+
+---
+
+## 8. Motion Planning Paradigms: Open-Loop vs. Closed-Loop Receding Horizon
+*For Thesis Chapter 3 (Control Architecture) & Chapter 4 (Navigation Performance)*
+
+| Evaluation Metric | Single-Shot Open-Loop Planning | Multi-Stage Closed-Loop (Receding Horizon) [Selected] |
+| :--- | :--- | :--- |
+| **Operational Principle** | A single camera snapshot generates an entire end-to-end trajectory (Turn -> Corridor -> Turn -> Door). | The trajectory is divided into discrete navigation legs. Robot re-senses (new snapshot + ToF) after clearing intermediate waypoints. |
+| **Dead-Reckoning & Wheel Drift** | **Severe Accumulation**: Wheel slippage and friction variations compound over time, causing the robot to miss the final door. | **Compensated**: Visual re-grounding at each waypoint eliminates accumulated drift errors. |
+| **Perspective Changes** | Fails: When moving through the corridor, the blue door's aspect angle changes dramatically and is obscured or distorted. | Adaptive: A fresh camera frame allows Gemini to observe the door from the new angle and re-calculate exact heading. |
+| **Cloud Inference Frequency** | Minimal (1 API call per user command). | Moderate (2 to 3 API calls per compound command). |
+| **Implementation Strategy** | **Phase 1**: Initial execution clears the immediate obstacle via the intermediate corridor mark `[3]`.<br>**Phase 2**: Automatic re-capture triggers final visual alignment with the destination mark `[2]`. |
+
