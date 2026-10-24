@@ -16,6 +16,7 @@ from backend.config import settings
 from backend.services.som_service import som_service
 from backend.services.azure_openai import azure_openai_service
 from backend.services.azure_speech import azure_speech_service
+from backend.services.gemini_service import gemini_service
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -118,6 +119,12 @@ async def serve_dashboard():
 @app.get("/api/status")
 async def get_system_status():
     is_robot_alive = state.robot_connected and (time.time() - state.last_robot_heartbeat < 10)
+    
+    if settings.AI_PROVIDER == "gemini":
+        ai_status = "Ready (Google Gemini 1.5 Flash)" if gemini_service.is_ready else "Ready (Gemini Simulation)"
+    else:
+        ai_status = "Ready (Mock)" if settings.USE_MOCK_AZURE else "Ready (Azure OpenAI GPT-4o)"
+
     return {
         "status": "online",
         "robot": {
@@ -125,9 +132,13 @@ async def get_system_status():
             "last_heartbeat": state.last_robot_heartbeat,
             "tof_distance_mm": state.last_tof_distance_mm
         },
+        "ai": {
+            "provider": settings.AI_PROVIDER,
+            "status": ai_status
+        },
         "azure": {
             "use_mock": settings.USE_MOCK_AZURE,
-            "openai_status": "Ready (Mock)" if settings.USE_MOCK_AZURE else "Ready (Azure OpenAI GPT-4o)",
+            "openai_status": ai_status,
             "speech_status": azure_speech_service.get_speech_config()["status"]
         },
         "vision": {
@@ -150,13 +161,21 @@ async def process_natural_language_command(req: NaturalLanguageCommandRequest):
     tof_dist = req.tof_distance_mm if req.tof_distance_mm is not None else state.last_tof_distance_mm
     logger.info(f"Received Natural Language Command: '{req.command}' (ToF: {tof_dist}mm)")
 
-    # 1. Run Azure OpenAI Reasoning
-    plan = await azure_openai_service.plan_navigation(
-        command_text=req.command,
-        tof_distance_mm=tof_dist,
-        som_metadata=state.detected_marks,
-        image_data_uri=state.som_image_data_uri
-    )
+    # 1. Run Multimodal Reasoning (Gemini or Azure OpenAI)
+    if settings.AI_PROVIDER == "gemini":
+        plan = await gemini_service.plan_navigation(
+            command_text=req.command,
+            tof_distance_mm=tof_dist,
+            som_metadata=state.detected_marks,
+            image_data_uri=state.som_image_data_uri
+        )
+    else:
+        plan = await azure_openai_service.plan_navigation(
+            command_text=req.command,
+            tof_distance_mm=tof_dist,
+            som_metadata=state.detected_marks,
+            image_data_uri=state.som_image_data_uri
+        )
     state.latest_plan = plan
 
     # 2. Add log entry
