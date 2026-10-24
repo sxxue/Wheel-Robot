@@ -215,9 +215,13 @@ class DashboardController {
         }
         if (msg.marks) this.renderMarks(msg.marks);
         if (msg.latest_plan) this.renderPlan(msg.latest_plan);
-        if (msg.azure_config) {
+        if (msg.ai_config) {
           this.azureDot.className = "status-dot active";
-          this.azureText.innerText = msg.azure_config.use_mock ? "AI: MOCK MODE" : "AI: GPT-4o ACTIVE";
+          this.azureText.innerText = msg.ai_config.status_text || "AI: GEMINI 3.8 FLASH";
+          const badge = document.getElementById("ai-engine-badge");
+          if (badge && msg.ai_config.provider === "gemini") {
+            badge.innerText = "SPEECH + GEMINI 3.8 FLASH";
+          }
         }
         break;
 

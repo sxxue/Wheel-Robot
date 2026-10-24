@@ -352,6 +352,11 @@ async def websocket_dashboard_endpoint(websocket: WebSocket):
     state.dashboard_websockets.append(websocket)
     logger.info(f"Dashboard client connected. Active dashboard clients: {len(state.dashboard_websockets)}")
 
+    if settings.AI_PROVIDER == "gemini":
+        ai_display_status = "AI: GEMINI 3.8 FLASH" if gemini_service.is_ready else "AI: GEMINI (SIMULATION)"
+    else:
+        ai_display_status = "AI: MOCK MODE" if settings.USE_MOCK_AZURE else "AI: GPT-4o ACTIVE"
+
     # Send initial full state
     is_robot_alive = state.robot_connected and (time.time() - state.last_robot_heartbeat < 10)
     await websocket.send_json({
@@ -363,9 +368,10 @@ async def websocket_dashboard_endpoint(websocket: WebSocket):
         "marks": state.detected_marks,
         "latest_plan": state.latest_plan,
         "execution_logs": state.execution_logs[:5],
-        "azure_config": {
-            "use_mock": settings.USE_MOCK_AZURE,
-            "openai_status": "Ready (Mock)" if settings.USE_MOCK_AZURE else "Ready (Azure OpenAI GPT-4o)"
+        "ai_config": {
+            "provider": settings.AI_PROVIDER,
+            "status_text": ai_display_status,
+            "is_active": True
         }
     })
 
