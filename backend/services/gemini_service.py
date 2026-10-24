@@ -75,24 +75,30 @@ class GeminiReasoningService:
         prompt = (
             "You are the high-level navigation planner for an autonomous 2WD wheeled robot equipped with a camera "
             "and a front Time-of-Flight (VL53L0X) distance sensor.\n\n"
-            "The image attached contains numbered Set-of-Mark (SoM) badges [1], [2], [3] representing detected objects and corridors.\n"
+            "The image attached contains numbered Set-of-Mark (SoM) badges [1] through [7] representing detected objects, targets, hazards, and corridors:\n"
+            "   - [1] Center Obstacle (Red Box) - direct ahead\n"
+            "   - [2] Blue Door (Target / Far Left)\n"
+            "   - [3] Free Corridor (Right Lane Clearance Route)\n"
+            "   - [4] Yellow Traffic Cone (Hazard / Left Foreground)\n"
+            "   - [5] Charging Station (Dock / Far Right Wall)\n"
+            "   - [6] Orange Safety Barrel (Obstacle / Mid-Right Flank)\n"
+            "   - [7] Lab Tool Bench (Storage / Mid-Left Background)\n\n"
             f"User Natural Language Command: '{command_text}'\n"
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
             "INTENT-AWARE NAVIGATION RULES:\n"
             "1. CLASSIFY THE USER'S INTENT & PHRASING:\n"
             "   A) COMPOUND SEQUENTIAL ACTIONS (e.g. 'go round obstacle once and go to the blue door', 'loop around [1] then reach [2]'):\n"
-            "      - The user explicitly requested TWO sequential phases in one command!\n"
-            "      - Phase 1 (Full 360° Circuit): 'once' or 'circle' means a complete circumnavigation around the obstacle (turn right -> forward past right flank -> turn left behind obstacle -> forward -> turn left down left flank -> forward to complete full 360° loop).\n"
-            "      - Phase 2 (Target Transit): From the completed loop, re-align heading directly toward target [2] (Blue Door) -> forward to destination -> STOP.\n"
+            "      - Phase 1 (Full 360° Circuit): 'once' or 'circle' means a complete circumnavigation around obstacle [1].\n"
+            "      - Phase 2 (Target Transit): Re-align heading toward the requested target ([2] Blue Door or [5] Charging Dock) and advance -> STOP.\n"
             "      - Generate all 8-9 steps required to execute both phases fully. DO NOT abbreviate into a simple bypass!\n\n"
-            "   B) SPECIFIC TARGET (e.g. 'reach the blue door', 'drive to the door'):\n"
-            "      - Destination is the user's requested object.\n"
-            "      - Plan route: bypass obstacle -> align with target -> drive directly to target -> STOP.\n\n"
-            "   C) OBSTACLE BYPASS ONLY (e.g. 'go around the obstacle', 'avoid the obstacle'):\n"
+            "   B) SPECIFIC TARGET (e.g. 'reach the blue door [2]', 'navigate to the charging dock [5]', 'drive to lab bench [7]'):\n"
+            "      - Destination is the user's requested object from the detected marks.\n"
+            "      - Plan route: bypass any intermediate obstacles/hazards (like [1], [4], [6]) -> align with target -> drive directly to target -> STOP.\n\n"
+            "   C) OBSTACLE BYPASS ONLY (e.g. 'go around the obstacle', 'avoid the obstacle [1]', 'steer around the orange barrel [6]'):\n"
             "      - No target specified! Destination is simply the clear open floor past the obstacle.\n"
-            "      - Plan: turn into corridor -> drive past obstacle -> turn back to straight forward heading -> STOP.\n\n"
-            "   D) DIRECTIONAL MOTION (e.g. 'turn right', 'move forward'):\n"
+            "      - Plan: turn into corridor [3] -> drive past obstacle -> turn back to straight forward heading -> STOP.\n\n"
+            "   D) DIRECTIONAL MOTION (e.g. 'turn right into corridor', 'move forward'):\n"
             "      - Direct motion primitive execution.\n\n"
             "Output pure JSON in this exact structure:\n"
             "{\n"
@@ -168,11 +174,16 @@ class GeminiReasoningService:
         is_close = tof_distance_mm < 460
 
         has_circuit = "once" in cmd_lower or "circle" in cmd_lower or "loop" in cmd_lower
-        has_door = "door" in cmd_lower
+        has_door = "door" in cmd_lower or "[2]" in cmd_lower
+        has_dock = "dock" in cmd_lower or "charg" in cmd_lower or "[5]" in cmd_lower
+        has_bench = "bench" in cmd_lower or "desk" in cmd_lower or "table" in cmd_lower or "tool" in cmd_lower or "[7]" in cmd_lower
+        has_cone = "cone" in cmd_lower or "[4]" in cmd_lower
+        has_barrel = "barrel" in cmd_lower or "[6]" in cmd_lower
 
         if has_circuit and has_door:
             intent = "COMPOUND_CIRCUIT_AND_TARGET"
             target = "[2] Target (Blue Door / Far Left)"
+            waypoint = "[1] Center Obstacle (Red Box)"
             explanation = (
                 f"[GEMINI REASONING] Compound command received: (1) Complete full 360° circumnavigation around obstacle [1], "
                 f"then (2) navigate to {target}. Executing complete 9-step circuit and arrival maneuver."
@@ -188,12 +199,42 @@ class GeminiReasoningService:
                 {"action": "FORWARD", "duration_s": 2.0, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
+        elif has_dock:
+            intent = "REACH_TARGET"
+            target = "[5] Charging Station (Dock / Far Right)"
+            waypoint = "[3] Free Corridor (Right Lane)"
+            explanation = (
+                f"[GEMINI REASONING] User requested navigation to the charging dock [5]. "
+                f"Front path blocked by obstacle [1] at {tof_distance_mm}mm. Route: (1) Turn right 40° into [3] Free Corridor, "
+                f"(2) Drive 1.4s past orange barrel [6], (3) Turn right 25° towards [5] Charging Dock, (4) Drive 1.2s to dock terminal, (5) STOP."
+            )
+            commands = [
+                {"action": "TURN_RIGHT", "degrees": 40, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
+                {"action": "TURN_RIGHT", "degrees": 25, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.2, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        elif has_bench:
+            intent = "REACH_TARGET"
+            target = "[7] Lab Tool Bench (Storage / Mid-Left)"
+            waypoint = "Clear gap between [4] Yellow Cone and [1] Red Box"
+            explanation = (
+                f"[GEMINI REASONING] Target set to Lab Tool Bench [7]. Navigating around [4] Yellow Cone hazard: "
+                f"(1) Turn left 25°, (2) Advance 1.6s to bench workstation, (3) STOP."
+            )
+            commands = [
+                {"action": "TURN_LEFT", "degrees": 25, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.6, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
         elif has_door:
             intent = "REACH_TARGET"
             target = "[2] Target (Blue Door)"
+            waypoint = "[3] Free Corridor (Right Lane)"
             explanation = (
                 f"[GEMINI REASONING] Obstacle [1] detected ahead at {tof_distance_mm}mm. "
-                f"Multi-leg route to blue door: (1) Turn right into [3] Free Corridor, (2) Drive 1.5s past obstacle [1], "
+                f"Multi-leg route to blue door: (1) Turn right into [3] Free Corridor, (2) Drive 1.5s past obstacle [1] and barrel [6], "
                 f"(3) Turn left 55° directly towards {target}, (4) Drive 2.0s to destination, (5) STOP."
             )
             commands = [
@@ -203,9 +244,23 @@ class GeminiReasoningService:
                 {"action": "FORWARD", "duration_s": 2.0, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
+        elif has_barrel:
+            intent = "OBSTACLE_BYPASS"
+            target = "Clear corridor lane avoiding safety barrel [6]"
+            waypoint = "[3] Free Corridor"
+            explanation = (
+                f"[GEMINI REASONING] Avoiding Orange Safety Barrel [6] on mid-right flank: "
+                f"(1) Maintain straight corridor heading along [3], (2) Drive 1.8s past barrel, (3) STOP."
+            )
+            commands = [
+                {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.8, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
         elif "around" in cmd_lower or "avoid" in cmd_lower:
             intent = "OBSTACLE_BYPASS"
-            target = "Clear corridor space past obstacle [1]"
+            target = "Clear corridor space past center obstacle [1]"
+            waypoint = "[3] Free Corridor"
             explanation = (
                 f"[GEMINI REASONING] Obstacle bypass requested. Center obstacle [1] at {tof_distance_mm}mm. "
                 f"Bypass route: (1) Turn right 35° into clear corridor [3], (2) Drive forward 1.6s to clear obstacle [1], "
@@ -220,6 +275,7 @@ class GeminiReasoningService:
         else:
             intent = "DIRECTIONAL_MOTION"
             target = f"Trajectory for '{command_text}'"
+            waypoint = "Direct Path"
             explanation = f"[GEMINI REASONING] Path clear ({tof_distance_mm}mm). Proceeding with requested movement."
             commands = [
                 {"action": "FORWARD", "duration_s": 1.5, "speed": 180},
@@ -230,8 +286,8 @@ class GeminiReasoningService:
             "status": "success",
             "user_intent": intent,
             "identified_target": target,
-            "identified_waypoint": "[3] Free Corridor",
-            "identified_obstacles": ["[1] Obstacle"],
+            "identified_waypoint": waypoint,
+            "identified_obstacles": ["[1] Obstacle (Red Box)"],
             "explanation": explanation,
             "commands": commands
         }

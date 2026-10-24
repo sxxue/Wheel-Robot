@@ -61,23 +61,11 @@ class SystemState:
 
 state = SystemState()
 
-# Generate a default initial test scene if none exists
+from backend.services.scene_generator import render_multi_object_scene, get_default_detected_objects
+
+# Generate a default initial test scene with multiple salient objects
 def generate_initial_test_scene():
-    img = Image.new("RGB", (640, 480), color=(30, 41, 59))
-    draw = ImageDraw.Draw(img)
-    # Draw floor
-    draw.polygon([(0, 480), (640, 480), (480, 240), (160, 240)], fill=(71, 85, 105))
-    # Draw blue door on left
-    draw.rectangle([80, 140, 200, 360], fill=(37, 99, 235), outline=(191, 219, 254), width=4)
-    # Draw obstacle in center
-    draw.rectangle([250, 280, 390, 420], fill=(220, 38, 38), outline=(254, 202, 202), width=3)
-    # Draw corridor on right
-    draw.rectangle([450, 220, 580, 440], fill=(16, 185, 129), outline=(167, 243, 208), width=2)
-    
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG")
-    raw_bytes = buf.getvalue()
-    
+    raw_bytes = render_multi_object_scene(640, 480, timestamp_text=f"CYBERNAV SCENE BENCHMARK - {time.strftime('%H:%M:%S')}")
     annotated_bytes, marks = som_service.annotate_frame(raw_bytes)
     state.raw_image_data_uri = som_service.bytes_to_base64_data_uri(raw_bytes)
     state.som_image_data_uri = som_service.bytes_to_base64_data_uri(annotated_bytes)

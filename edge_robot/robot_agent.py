@@ -7,6 +7,12 @@ Supports both SAFE DRY-RUN (motors disconnected) and FULL HARDWARE mode.
 
 import os
 import sys
+
+# Ensure repository root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import time
 import json
 import io
@@ -113,18 +119,24 @@ class EdgeRobotAgent:
             except Exception as e:
                 logger.warning(f"Pi Camera capture failed: {e}")
 
-        # Return a simulated test pattern frame
-        from PIL import Image, ImageDraw
-        img = Image.new("RGB", (640, 480), color=(24, 30, 45))
-        draw = ImageDraw.Draw(img)
-        draw.polygon([(0, 480), (640, 480), (480, 240), (160, 240)], fill=(60, 75, 95))
-        draw.rectangle([80, 140, 200, 360], fill=(37, 99, 235), outline=(191, 219, 254), width=3)  # Blue door
-        draw.rectangle([260, 280, 380, 420], fill=(220, 38, 38), outline=(254, 202, 202), width=3) # Obstacle
-        draw.rectangle([450, 220, 580, 440], fill=(16, 185, 129), outline=(167, 243, 208), width=2) # Corridor
-        draw.text((20, 20), f"CYBERNAV EDGE STREAM - {time.strftime('%H:%M:%S')}", fill=(56, 189, 248))
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=75)
-        return base64.b64encode(buf.getvalue()).decode("utf-8")
+        # Return simulated multi-object test pattern frame
+        try:
+            from backend.services.scene_generator import render_multi_object_scene
+            jpeg_bytes = render_multi_object_scene(640, 480, timestamp_text=f"CYBERNAV EDGE STREAM - {time.strftime('%H:%M:%S')}")
+            return base64.b64encode(jpeg_bytes).decode("utf-8")
+        except Exception as e:
+            logger.warning(f"Failed to use scene_generator, using fallback PIL drawing: {e}")
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (640, 480), color=(24, 30, 45))
+            draw = ImageDraw.Draw(img)
+            draw.polygon([(0, 480), (640, 480), (480, 240), (160, 240)], fill=(60, 75, 95))
+            draw.rectangle([80, 140, 200, 360], fill=(37, 99, 235), outline=(191, 219, 254), width=3)  # Blue door
+            draw.rectangle([260, 280, 380, 420], fill=(220, 38, 38), outline=(254, 202, 202), width=3) # Obstacle
+            draw.rectangle([450, 220, 580, 440], fill=(16, 185, 129), outline=(167, 243, 208), width=2) # Corridor
+            draw.text((20, 20), f"CYBERNAV EDGE STREAM - {time.strftime('%H:%M:%S')}", fill=(56, 189, 248))
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            return base64.b64encode(buf.getvalue()).decode("utf-8")
 
     async def execute_action(self, action: str, speed: int = 150, duration_s: float = 1.0, degrees: int = 0):
         """Executes a primitive motion with reactive obstacle checking"""

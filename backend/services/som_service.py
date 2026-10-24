@@ -11,11 +11,13 @@ class SetOfMarkService:
     """
 
     COLOR_PALETTE = [
-        {"fill": (239, 68, 68, 80), "outline": (239, 68, 68), "text_bg": (239, 68, 68)},    # Red (Obstacle)
-        {"fill": (59, 130, 246, 80), "outline": (59, 130, 246), "text_bg": (59, 130, 246)},  # Blue (Target/Door)
-        {"fill": (16, 185, 129, 80), "outline": (16, 185, 129), "text_bg": (16, 185, 129)},  # Green (Path/Corridor)
-        {"fill": (245, 158, 11, 80), "outline": (245, 158, 11), "text_bg": (245, 158, 11)},  # Amber
-        {"fill": (168, 85, 247, 80), "outline": (168, 85, 247), "text_bg": (168, 85, 247)}   # Purple
+        {"fill": (239, 68, 68, 80), "outline": (239, 68, 68), "text_bg": (239, 68, 68)},    # [1] Red (Center Obstacle)
+        {"fill": (59, 130, 246, 80), "outline": (59, 130, 246), "text_bg": (59, 130, 246)},  # [2] Blue (Blue Door Target)
+        {"fill": (16, 185, 129, 80), "outline": (16, 185, 129), "text_bg": (16, 185, 129)},  # [3] Green (Free Corridor)
+        {"fill": (234, 179, 8, 80), "outline": (234, 179, 8), "text_bg": (234, 179, 8)},    # [4] Amber/Yellow (Traffic Cone Hazard)
+        {"fill": (6, 182, 212, 80), "outline": (6, 182, 212), "text_bg": (6, 182, 212)},    # [5] Cyan/Teal (Charging Station Dock)
+        {"fill": (249, 115, 22, 80), "outline": (249, 115, 22), "text_bg": (249, 115, 22)},  # [6] Orange (Safety Barrel)
+        {"fill": (168, 85, 247, 80), "outline": (168, 85, 247), "text_bg": (168, 85, 247)}   # [7] Purple (Lab Tool Bench)
     ]
 
     def annotate_frame(
@@ -37,23 +39,19 @@ class SetOfMarkService:
 
         # Default fallback objects if no detector model is running
         if not detected_objects:
-            detected_objects = [
-                {
-                    "id": 1,
-                    "label": "Obstacle (Center Block)",
-                    "bbox": [int(width * 0.35), int(height * 0.45), int(width * 0.65), int(height * 0.85)]
-                },
-                {
-                    "id": 2,
-                    "label": "Target (Blue Door / Far Left)",
-                    "bbox": [int(width * 0.08), int(height * 0.20), int(width * 0.30), int(height * 0.80)]
-                },
-                {
-                    "id": 3,
-                    "label": "Free Corridor (Right Lane)",
-                    "bbox": [int(width * 0.70), int(height * 0.35), int(width * 0.95), int(height * 0.85)]
-                }
-            ]
+            try:
+                from backend.services.scene_generator import get_default_detected_objects
+                detected_objects = get_default_detected_objects(width, height)
+            except Exception:
+                detected_objects = [
+                    {"id": 1, "label": "Center Obstacle (Red Box)", "bbox": [int(width * 0.41), int(height * 0.51), int(width * 0.65), int(height * 0.83)]},
+                    {"id": 2, "label": "Blue Door (Target)", "bbox": [int(width * 0.08), int(height * 0.23), int(width * 0.26), int(height * 0.71)]},
+                    {"id": 3, "label": "Free Corridor (Right Lane)", "bbox": [int(width * 0.72), int(height * 0.45), int(width * 0.86), int(height * 0.90)]},
+                    {"id": 4, "label": "Yellow Traffic Cone (Hazard)", "bbox": [int(width * 0.26), int(height * 0.63), int(width * 0.38), int(height * 0.88)]},
+                    {"id": 5, "label": "Charging Station (Dock)", "bbox": [int(width * 0.86), int(height * 0.64), int(width * 0.99), int(height * 0.90)]},
+                    {"id": 6, "label": "Orange Safety Barrel", "bbox": [int(width * 0.61), int(height * 0.52), int(width * 0.72), int(height * 0.75)]},
+                    {"id": 7, "label": "Lab Tool Bench (Storage)", "bbox": [int(width * 0.28), int(height * 0.34), int(width * 0.41), int(height * 0.57)]}
+                ]
 
         # Draw each mark
         for idx, obj in enumerate(detected_objects):

@@ -98,6 +98,8 @@
 | *Planning Phase* | Navigation Horizon | Single-Shot Open-Loop vs. Multi-Stage Closed-Loop (Receding Horizon) | **Multi-Stage Closed-Loop Selected**: In dynamic multi-obstacle environments, an initial open-loop sequence only reaches the intermediate detour (corridor). Closed-loop navigation splits the journey into Waypoint Clearing -> Re-sensing snapshot -> Final Goal Approach. |
 | *NLP & Reasoning* | Prompt Architecture | Rigid Template Priming vs. Intent-Aware Prompt Classification | **Intent-Aware Classification Selected**: Avoids "template anchoring" where the model assumes every command must head toward a predefined landmark. Differentiates between *Target-Driven Navigation* (reach door) and *Pure Obstacle Bypass* (circumnavigate and resume heading). |
 
+| *Scene Complexity* | Benchmark Testing Suite | Sparse 3-Object Scene vs. Dense 7-Object Multi-Landmark Environment | **Dense 7-Object Suite Selected**: Expands beyond basic obstacle/door setup to include hazards (traffic cone), secondary obstacles (safety barrel), alternative targets (charging dock, lab tool bench), and clearance corridors for realistic FYP2 evaluation. |
+
 ---
 
 ## 8. Motion Planning Paradigms: Open-Loop vs. Closed-Loop Receding Horizon
@@ -122,5 +124,20 @@
 | **Template Anchoring / Bias** | **High Susceptibility**: The model hallucinates the fixed landmark as the destination even for generic commands like *"go around the obstacle"*. | **Eliminated**: Distinguishes between *Goal-Driven* (A-to-B), *Obstacle-Bypass* (circumnavigation), and *Directional Exploration*. |
 | **Obstacle Avoidance Trajectory** | Erroneously curves all the way to an unintended object. | Accurately maneuvers: **Detour -> Bypass Obstacle -> Re-align Straight Heading -> Stop in Safe Zone**. |
 | **Semantic Fidelity** | Low for unconstrained natural language queries. | **High**: Honors exact user semantics without unrequested target bias. |
+
+---
+
+## 10. Benchmark Scene Complexity: Sparse 3-Object vs. Dense 7-Object Set-of-Mark Suite
+*For Thesis Chapter 3 (Experimental Setup & Benchmark Environment) & Chapter 4 (Navigation Scenarios & Spatial Reasoning)*
+
+| Evaluation Dimension | Sparse Scene (3 Marks: Door, Box, Corridor) | Dense Multi-Object Suite (7 Marks: Door, Dock, Bench, Cone, Barrel, Box, Corridor) [Selected] |
+| :--- | :--- | :--- |
+| **Environmental Realism** | Minimal / Synthetic Toy Environment: Does not reflect real laboratory or indoor warehouse complexities. | **High Fidelity**: Replicates a functional robotics testbed with diverse obstacle types, hazards, and multiple valid navigational targets. |
+| **Landmark Diversity** | Only 1 target (`[2] Blue Door`) and 1 obstacle (`[1] Box`). | **Multi-Goal & Multi-Hazard**: <br>• Targets: `[2] Blue Door`, `[5] Charging Dock`, `[7] Lab Tool Bench`<br>• Hazards/Obstacles: `[1] Center Box`, `[4] Yellow Cone`, `[6] Safety Barrel`<br>• Navigation Routes: `[3] Free Corridor` |
+| **Ambiguity & Spatial Disambiguation** | Low: VLM only needs to pick between left door and right corridor. | **High Benchmark Rigor**: Tests VLM's ability to discriminate between spatial prompts (e.g., *"dock on the right"* vs *"door on the left"*, *"bypass the cone"* vs *"go around the barrel"*). |
+| **Compound Navigation Feasibility** | Limited: Only simple detour maneuvers possible. | **Rich Sequential Missions**: Supports complex natural language tasks like *"bypass the cone [4] to reach the lab bench [7]"* or *"navigate through corridor [3] to the green charging dock [5]"*. |
+| **Visual Set-of-Mark Scalability** | Fixed single color palette. | **Expanded 7-Color Harmonious Palette**: Red, Blue, Green, Yellow/Amber, Cyan/Teal, Orange, and Purple badges with zero color collisions. |
+| **Thesis Impact** | Sufficient only for rudimentary proofs of concept. | **Strong Academic Contribution**: Demonstrates robust zero-shot multi-landmark spatial grounding in thesis defense and experimental evaluations. |
+
 
 
