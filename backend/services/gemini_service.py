@@ -80,27 +80,31 @@ class GeminiReasoningService:
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
             "INTENT-AWARE NAVIGATION RULES:\n"
-            "1. CLASSIFY THE USER'S INTENT:\n"
-            "   A) SPECIFIC TARGET (e.g. 'reach the blue door', 'go to [2]', 'drive to the door'):\n"
+            "1. CLASSIFY THE USER'S INTENT & PHRASING:\n"
+            "   A) COMPOUND SEQUENTIAL ACTIONS (e.g. 'go round obstacle once and go to the blue door', 'loop around [1] then reach [2]'):\n"
+            "      - The user explicitly requested TWO sequential phases in one command!\n"
+            "      - Phase 1 (Full 360° Circuit): 'once' or 'circle' means a complete circumnavigation around the obstacle (turn right -> forward past right flank -> turn left behind obstacle -> forward -> turn left down left flank -> forward to complete full 360° loop).\n"
+            "      - Phase 2 (Target Transit): From the completed loop, re-align heading directly toward target [2] (Blue Door) -> forward to destination -> STOP.\n"
+            "      - Generate all 8-9 steps required to execute both phases fully. DO NOT abbreviate into a simple bypass!\n\n"
+            "   B) SPECIFIC TARGET (e.g. 'reach the blue door', 'drive to the door'):\n"
             "      - Destination is the user's requested object.\n"
-            "      - Plan route: bypass obstacles -> align with target -> drive to target -> STOP.\n"
-            "   B) OBSTACLE BYPASS ONLY (e.g. 'go around the obstacle', 'avoid the obstacle', 'circumnavigate'):\n"
-            "      - The user did NOT ask for the blue door or any specific destination!\n"
-            "      - Destination is simply the clear open floor PAST the obstacle.\n"
-            "      - Plan route: turn into clear space/corridor -> drive past the obstacle -> turn back to resume straight forward heading -> STOP in clear space. DO NOT head toward the blue door unless explicitly requested!\n"
-            "   C) DIRECTIONAL / EXPLORATION (e.g. 'turn right', 'move forward', 'explore corridor'):\n"
-            "      - Execute the commanded motion into the specified direction/corridor.\n\n"
+            "      - Plan route: bypass obstacle -> align with target -> drive directly to target -> STOP.\n\n"
+            "   C) OBSTACLE BYPASS ONLY (e.g. 'go around the obstacle', 'avoid the obstacle'):\n"
+            "      - No target specified! Destination is simply the clear open floor past the obstacle.\n"
+            "      - Plan: turn into corridor -> drive past obstacle -> turn back to straight forward heading -> STOP.\n\n"
+            "   D) DIRECTIONAL MOTION (e.g. 'turn right', 'move forward'):\n"
+            "      - Direct motion primitive execution.\n\n"
             "Output pure JSON in this exact structure:\n"
             "{\n"
             '  "status": "success",\n'
-            '  "user_intent": "REACH_TARGET or OBSTACLE_BYPASS or DIRECTIONAL_MOTION",\n'
-            '  "identified_target": "Name of the target or Clear area past obstacle",\n'
-            '  "identified_waypoint": "Intermediate detour used or None",\n'
-            '  "identified_obstacles": ["List of obstacles to avoid"],\n'
-            '  "explanation": "Clear spatial reasoning strictly adhering to the user command intent.",\n'
+            '  "user_intent": "COMPOUND_CIRCUIT_AND_TARGET or REACH_TARGET or OBSTACLE_BYPASS or DIRECTIONAL_MOTION",\n'
+            '  "identified_target": "Name of final destination or clear area",\n'
+            '  "identified_waypoint": "Intermediate detour used",\n'
+            '  "identified_obstacles": ["List of obstacles"],\n'
+            '  "explanation": "Detailed multi-phase reasoning explicitly addressing all clauses of user command.",\n'
             '  "commands": [\n'
-            '    {"action": "TURN_RIGHT", "degrees": 30, "speed": 160},\n'
-            '    {"action": "FORWARD", "duration_s": 1.2, "speed": 160},\n'
+            '    {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},\n'
+            '    {"action": "FORWARD", "duration_s": 1.4, "speed": 160},\n'
             '    {"action": "STOP", "duration_s": 0, "speed": 0}\n'
             '  ]\n'
             "}"
@@ -163,7 +167,28 @@ class GeminiReasoningService:
         cmd_lower = command_text.lower()
         is_close = tof_distance_mm < 460
 
-        if "door" in cmd_lower:
+        has_circuit = "once" in cmd_lower or "circle" in cmd_lower or "loop" in cmd_lower
+        has_door = "door" in cmd_lower
+
+        if has_circuit and has_door:
+            intent = "COMPOUND_CIRCUIT_AND_TARGET"
+            target = "[2] Target (Blue Door / Far Left)"
+            explanation = (
+                f"[GEMINI REASONING] Compound command received: (1) Complete full 360° circumnavigation around obstacle [1], "
+                f"then (2) navigate to {target}. Executing complete 9-step circuit and arrival maneuver."
+            )
+            commands = [
+                {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
+                {"action": "TURN_LEFT", "degrees": 90, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
+                {"action": "TURN_LEFT", "degrees": 90, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
+                {"action": "TURN_RIGHT", "degrees": 45, "speed": 160},
+                {"action": "FORWARD", "duration_s": 2.0, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        elif has_door:
             intent = "REACH_TARGET"
             target = "[2] Target (Blue Door)"
             explanation = (
