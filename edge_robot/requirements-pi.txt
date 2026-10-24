@@ -1,0 +1,7 @@
+# Lightweight Raspberry Pi Zero 2 W Dependencies
+websockets>=12.0
+requests>=2.31.0
+pillow>=10.2.0
+# Hardware libraries (pre-installed on Raspberry Pi OS or installed via apt):
+# RPi.GPIO or gpiozero
+# adafruit-circuitpython-vl53l0x

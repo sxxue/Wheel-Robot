@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERNAV // Wheeled Robot Cloud Command Center</title>
+  <meta name="description" content="Cloud-Assisted Natural Language Wheeled Robot Control with Azure OpenAI Set-of-Mark Vision and Voice Integration">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">🤖</div>
+        <div>
+          <div class="brand-title">
+            CYBERNAV
+            <span class="brand-badge">FYP2 // AZURE CLOUD</span>
+          </div>
+          <div class="brand-subtitle">Natural Language Voice & Set-of-Mark (SoM) Vision Controller</div>
+        </div>
+      </div>
+
+      <!-- Real-time Status Indicators -->
+      <div class="system-status-pills">
+        <div class="status-pill" id="pill-server">
+          <div class="status-dot active" id="server-dot"></div>
+          <span id="server-text">CLOUD: ONLINE</span>
+        </div>
+        <div class="status-pill" id="pill-robot">
+          <div class="status-dot error" id="robot-dot"></div>
+          <span id="robot-text">ROBOT: STANDBY</span>
+        </div>
+        <div class="status-pill" id="pill-azure">
+          <div class="status-dot active" id="azure-dot"></div>
+          <span id="azure-text">AI: GPT-4o READY</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Two-Column Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Vision Perception (Set-of-Mark) -->
+      <section class="glass-card" id="vision-panel">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>👁️</span> Vision Perception & Set-of-Mark (SoM)
+          </h2>
+          <div class="card-actions">
+            <button class="btn-primary" id="tab-som">Set-of-Mark (SoM)</button>
+            <button class="btn-secondary" id="tab-raw">Raw Feed</button>
+            <button class="btn-secondary" id="btn-snapshot" title="Trigger Pi Camera Snapshot">📷 Capture</button>
+          </div>
+        </div>
+
+        <!-- Vision Viewport Container -->
+        <div class="viewport-container">
+          <img id="viewport-img" class="viewport-img" src="" alt="Robot Scene Feed">
+          <div class="viewport-overlay-hud">
+            <span class="hud-pill">CAM: V2 (8MP CSI)</span>
+            <span class="hud-pill">SOM: FAST-DETECTOR</span>
+          </div>
+        </div>
+
+        <!-- Detected Marks Legend -->
+        <div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600; text-transform: uppercase;">
+            Detected Salient Landmarks
+          </div>
+          <div class="marks-legend" id="marks-legend">
+            <!-- Dynamic Marks rendered by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Voice & Natural Language Command Hub -->
+      <section class="glass-card" id="command-panel">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>🎙️</span> Natural Language Command Hub
+          </h2>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue);">AZURE SPEECH + GPT-4o</span>
+        </div>
+
+        <!-- Voice Microphone Trigger -->
+        <div class="voice-section">
+          <div class="mic-button-wrapper">
+            <button class="mic-button" id="btn-mic" title="Click to speak command">
+              🎙️
+            </button>
+          </div>
+          <div class="voice-status-text" id="mic-status-text">
+            Click microphone or type command below
+          </div>
+        </div>
+
+        <!-- Command Input Group -->
+        <div class="command-input-group">
+          <input 
+            type="text" 
+            class="input-box" 
+            id="command-input" 
+            placeholder="e.g., Avoid the obstacle and reach the blue door..."
+            autocomplete="off"
+          >
+          <button class="btn-primary" id="btn-execute">Execute</button>
+        </div>
+
+        <!-- Quick Prompts Suggestions -->
+        <div class="quick-prompts-wrapper">
+          <span class="quick-prompts-label">Quick Test Scenarios:</span>
+          <div class="chips-row">
+            <button class="prompt-chip" data-prompt="Avoid the obstacle and reach the blue door">
+              "Avoid the obstacle and reach the blue door"
+            </button>
+            <button class="prompt-chip" data-prompt="Turn right into open corridor and move forward">
+              "Turn right into open corridor"
+            </button>
+            <button class="prompt-chip" data-prompt="Halt and report front distance">
+              "Halt and report front distance"
+            </button>
+          </div>
+        </div>
+
+        <!-- Motion Plan & Reasoning Visualizer -->
+        <div class="plan-display" id="plan-container">
+          <div class="plan-header">
+            <span class="plan-target" id="plan-target">Target: Identified Target</span>
+            <span style="font-size: 11px; color: var(--accent-green); font-family: var(--font-mono);">PLANNED STEP-BY-STEP</span>
+          </div>
+          <div class="plan-explanation" id="plan-explanation">
+            Reasoning explanation will appear here after LLM evaluation.
+          </div>
+          <ul class="steps-list" id="steps-list">
+            <!-- Steps injected by app.js -->
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Metrics & Hardware Overrides -->
+    <section class="bottom-metrics-grid">
+      <!-- 1. VL53L0X ToF Distance Meter -->
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title"><span>📏</span> Front ToF Distance</h2>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">VL53L0X (I2C)</span>
+        </div>
+
+        <div class="distance-gauge-box">
+          <div>
+            <span class="distance-number" id="distance-value">420</span>
+            <span class="distance-unit">mm</span>
+          </div>
+
+          <div class="distance-bar-wrapper">
+            <div class="distance-bar-fill" id="distance-bar-fill"></div>
+          </div>
+
+          <div class="distance-alert-pill" id="distance-alert">
+            PATH CLEAR
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Manual Motor Test (Dry Run Safe) -->
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title"><span>🎮</span> Manual Hardware Override</h2>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-amber);">DRY-RUN SAFE</span>
+        </div>
+
+        <div class="dpad-container">
+          <div></div>
+          <button class="dpad-btn" data-action="FORWARD" title="Forward">▲</button>
+          <div></div>
+
+          <button class="dpad-btn" data-action="TURN_LEFT" title="Turn Left">◄</button>
+          <button class="dpad-btn stop-btn" data-action="STOP" title="Emergency Stop">■</button>
+          <button class="dpad-btn" data-action="TURN_RIGHT" title="Turn Right">►</button>
+
+          <div></div>
+          <button class="dpad-btn" data-action="BACKWARD" title="Reverse">▼</button>
+          <div></div>
+        </div>
+        <div style="font-size: 11px; text-align: center; color: var(--text-dim);">
+          Motors can be safely disconnected during initial testing.
+        </div>
+      </div>
+
+      <!-- 3. Terminal Communication Console -->
+      <div class="glass-card">
+        <div class="card-header">
+          <h2 class="card-title"><span>📟</span> Live Communication Log</h2>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">WS & REST</span>
+        </div>
+
+        <div class="terminal-console" id="terminal-console">
+          <div class="log-entry">
+            <span class="log-time">[System]</span>
+            <span class="log-msg">Dashboard initialized. Waiting for WebSocket handshake...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

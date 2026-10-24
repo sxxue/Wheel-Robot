@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Azure & Cloud secrets
+secrets.json
+local.settings.json
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Testing & Artifacts
+test_runs/
+captures/
+*.jpg
+*.jpeg
+*.png
+!backend/static/img/*
