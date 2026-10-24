@@ -96,6 +96,7 @@
 | *Initial Setup* | Obstacle Sensor | VL53L0X (ToF I2C) vs. HC-SR04 (Ultrasonic) | **VL53L0X Selected**: Millimeter accuracy (Time-of-Flight laser), narrow field of view, no ultrasonic acoustic echo reflections, 3.3V logic compatible. |
 | *Initial Setup* | Camera Interface | Pi Camera v2 (CSI) vs. USB Webcam | **Pi Camera v2 Selected**: Hardware MIPI CSI-2 bus bypasses USB bus bandwidth limits, saving CPU cycles on Pi Zero 2 W. |
 | *Planning Phase* | Navigation Horizon | Single-Shot Open-Loop vs. Multi-Stage Closed-Loop (Receding Horizon) | **Multi-Stage Closed-Loop Selected**: In dynamic multi-obstacle environments, an initial open-loop sequence only reaches the intermediate detour (corridor). Closed-loop navigation splits the journey into Waypoint Clearing -> Re-sensing snapshot -> Final Goal Approach. |
+| *NLP & Reasoning* | Prompt Architecture | Rigid Template Priming vs. Intent-Aware Prompt Classification | **Intent-Aware Classification Selected**: Avoids "template anchoring" where the model assumes every command must head toward a predefined landmark. Differentiates between *Target-Driven Navigation* (reach door) and *Pure Obstacle Bypass* (circumnavigate and resume heading). |
 
 ---
 
@@ -109,4 +110,17 @@
 | **Perspective Changes** | Fails: When moving through the corridor, the blue door's aspect angle changes dramatically and is obscured or distorted. | Adaptive: A fresh camera frame allows Gemini to observe the door from the new angle and re-calculate exact heading. |
 | **Cloud Inference Frequency** | Minimal (1 API call per user command). | Moderate (2 to 3 API calls per compound command). |
 | **Implementation Strategy** | **Phase 1**: Initial execution clears the immediate obstacle via the intermediate corridor mark `[3]`.<br>**Phase 2**: Automatic re-capture triggers final visual alignment with the destination mark `[2]`. |
+
+---
+
+## 9. Natural Language Grounding: Intent-Aware Classification vs. Rigid Template Priming
+*For Thesis Chapter 2 (Literature Review: NLP in Robotics) & Chapter 3 (LLM Grounding Methodology)*
+
+| Technical Dimension | Rigid Few-Shot Template Priming | Intent-Aware Multi-Class Grounding [Selected] |
+| :--- | :--- | :--- |
+| **Behavioral Mechanism** | The system prompt includes static JSON examples referencing a fixed landmark (e.g., `[2] Blue Door`). | The system prompt enforces explicit **User Intent Classification** prior to trajectory generation. |
+| **Template Anchoring / Bias** | **High Susceptibility**: The model hallucinates the fixed landmark as the destination even for generic commands like *"go around the obstacle"*. | **Eliminated**: Distinguishes between *Goal-Driven* (A-to-B), *Obstacle-Bypass* (circumnavigation), and *Directional Exploration*. |
+| **Obstacle Avoidance Trajectory** | Erroneously curves all the way to an unintended object. | Accurately maneuvers: **Detour -> Bypass Obstacle -> Re-align Straight Heading -> Stop in Safe Zone**. |
+| **Semantic Fidelity** | Low for unconstrained natural language queries. | **High**: Honors exact user semantics without unrequested target bias. |
+
 

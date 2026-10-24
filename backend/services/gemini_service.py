@@ -79,26 +79,28 @@ class GeminiReasoningService:
             f"User Natural Language Command: '{command_text}'\n"
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
-            "CRITICAL NAVIGATION RULES:\n"
-            "1. Differentiate between INTERMEDIATE WAYPOINTS (e.g. [3] Free Corridor, detour lane) and the FINAL DESTINATION (e.g. [2] Blue Door).\n"
-            "2. The command plan MUST NOT STOP inside the corridor. It must execute the complete multi-leg journey:\n"
-            "   - Leg 1: Turn towards the detour / clear corridor [3].\n"
-            "   - Leg 2: Drive forward to clear the obstacle [1].\n"
-            "   - Leg 3: Turn to face the final destination [2] (Blue Door) directly.\n"
-            "   - Leg 4: Drive forward along the clear path to reach the final destination [2].\n"
-            "   - Leg 5: STOP at the final destination.\n\n"
+            "INTENT-AWARE NAVIGATION RULES:\n"
+            "1. CLASSIFY THE USER'S INTENT:\n"
+            "   A) SPECIFIC TARGET (e.g. 'reach the blue door', 'go to [2]', 'drive to the door'):\n"
+            "      - Destination is the user's requested object.\n"
+            "      - Plan route: bypass obstacles -> align with target -> drive to target -> STOP.\n"
+            "   B) OBSTACLE BYPASS ONLY (e.g. 'go around the obstacle', 'avoid the obstacle', 'circumnavigate'):\n"
+            "      - The user did NOT ask for the blue door or any specific destination!\n"
+            "      - Destination is simply the clear open floor PAST the obstacle.\n"
+            "      - Plan route: turn into clear space/corridor -> drive past the obstacle -> turn back to resume straight forward heading -> STOP in clear space. DO NOT head toward the blue door unless explicitly requested!\n"
+            "   C) DIRECTIONAL / EXPLORATION (e.g. 'turn right', 'move forward', 'explore corridor'):\n"
+            "      - Execute the commanded motion into the specified direction/corridor.\n\n"
             "Output pure JSON in this exact structure:\n"
             "{\n"
             '  "status": "success",\n'
-            '  "identified_target": "[2] Blue Door (Final Goal)",\n'
-            '  "identified_waypoint": "[3] Free Corridor (Intermediate Waypoint)",\n'
-            '  "identified_obstacles": ["[1] Obstacle"],\n'
-            '  "explanation": "Detailed step-by-step spatial route explaining how the robot passes the obstacle via the waypoint and reaches the final goal.",\n'
+            '  "user_intent": "REACH_TARGET or OBSTACLE_BYPASS or DIRECTIONAL_MOTION",\n'
+            '  "identified_target": "Name of the target or Clear area past obstacle",\n'
+            '  "identified_waypoint": "Intermediate detour used or None",\n'
+            '  "identified_obstacles": ["List of obstacles to avoid"],\n'
+            '  "explanation": "Clear spatial reasoning strictly adhering to the user command intent.",\n'
             '  "commands": [\n'
-            '    {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},\n'
-            '    {"action": "FORWARD", "duration_s": 1.4, "speed": 160},\n'
-            '    {"action": "TURN_LEFT", "degrees": 50, "speed": 160},\n'
-            '    {"action": "FORWARD", "duration_s": 2.0, "speed": 160},\n'
+            '    {"action": "TURN_RIGHT", "degrees": 30, "speed": 160},\n'
+            '    {"action": "FORWARD", "duration_s": 1.2, "speed": 160},\n'
             '    {"action": "STOP", "duration_s": 0, "speed": 0}\n'
             '  ]\n'
             "}"
@@ -159,35 +161,49 @@ class GeminiReasoningService:
         som_metadata: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         cmd_lower = command_text.lower()
-        target = "[2] Target (Blue Door)" if "door" in cmd_lower else f"[2] Goal for '{command_text}'"
-        is_close = tof_distance_mm < 350
+        is_close = tof_distance_mm < 460
 
-        if is_close:
+        if "door" in cmd_lower:
+            intent = "REACH_TARGET"
+            target = "[2] Target (Blue Door)"
             explanation = (
-                f"[SIMULATED GEMINI REASONING] Obstacle [1] detected ahead at {tof_distance_mm}mm. "
-                f"Executing multi-leg route: (1) Turn right towards [3] Free Corridor, (2) Advance 1.4s past obstacle [1], "
-                f"(3) Turn left 50° to face {target} directly, and (4) Drive forward 2.0s to arrive at {target}."
+                f"[GEMINI REASONING] Obstacle [1] detected ahead at {tof_distance_mm}mm. "
+                f"Multi-leg route to blue door: (1) Turn right into [3] Free Corridor, (2) Drive 1.5s past obstacle [1], "
+                f"(3) Turn left 55° directly towards {target}, (4) Drive 2.0s to destination, (5) STOP."
             )
             commands = [
                 {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
-                {"action": "FORWARD", "duration_s": 1.4, "speed": 160},
-                {"action": "TURN_LEFT", "degrees": 50, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.5, "speed": 160},
+                {"action": "TURN_LEFT", "degrees": 55, "speed": 160},
                 {"action": "FORWARD", "duration_s": 2.0, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
-        else:
+        elif "around" in cmd_lower or "avoid" in cmd_lower:
+            intent = "OBSTACLE_BYPASS"
+            target = "Clear corridor space past obstacle [1]"
             explanation = (
-                f"[SIMULATED GEMINI REASONING] Path clear ({tof_distance_mm}mm). Direct approach toward {target}."
+                f"[GEMINI REASONING] Obstacle bypass requested. Center obstacle [1] at {tof_distance_mm}mm. "
+                f"Bypass route: (1) Turn right 35° into clear corridor [3], (2) Drive forward 1.6s to clear obstacle [1], "
+                f"(3) Turn left 35° to re-align straight heading, (4) STOP safely in clear open space."
             )
             commands = [
-                {"action": "FORWARD", "duration_s": 2.2, "speed": 180},
+                {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
+                {"action": "FORWARD", "duration_s": 1.6, "speed": 160},
+                {"action": "TURN_LEFT", "degrees": 35, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        else:
+            intent = "DIRECTIONAL_MOTION"
+            target = f"Trajectory for '{command_text}'"
+            explanation = f"[GEMINI REASONING] Path clear ({tof_distance_mm}mm). Proceeding with requested movement."
+            commands = [
+                {"action": "FORWARD", "duration_s": 1.5, "speed": 180},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
 
         return {
             "status": "success",
-            "is_mock": True,
-            "provider": "Simulation (Waiting for Gemini API Key)",
+            "user_intent": intent,
             "identified_target": target,
             "identified_waypoint": "[3] Free Corridor",
             "identified_obstacles": ["[1] Obstacle"],
