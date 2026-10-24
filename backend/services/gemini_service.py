@@ -87,9 +87,17 @@ class GeminiReasoningService:
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
             "MULTILINGUAL NATURAL LANGUAGE CAPABILITY:\n"
-            "The User Command may be issued in ANY of 19+ languages (e.g. English, Bahasa Melayu, 中文 Mandarin/Cantonese, "
-            "日本語 Japanese, 한국어 Korean, Español, Français, Deutsch, العربية Arabic, हिन्दी Hindi, தமிழ் Tamil, "
-            "Bahasa Indonesia, Русский, Português, Italiano, Tiếng Việt, ไทย, etc.).\n"
+            "The User Command may be issued in ANY of 20+ languages/dialects (e.g. English, Bahasa Melayu, 廣東話 Cantonese, "
+            "中文 Mandarin, 台灣國語 Taiwanese, 日本語 Japanese, 한국어 Korean, Español, Français, Deutsch, العربية, "
+            "हिन्दी, தமிழ், Bahasa Indonesia, Русский, Português, Italiano, Tiếng Việt, ไทย, etc.).\n\n"
+            "CANTONESE (粵語 / 廣東話) REGIONAL DIALECT MAPPING:\n"
+            "- '叉電' / '叉電位' / '叉電站' -> Charging Station [5]\n"
+            "- '雪糕筒' / '黃色雪糕筒' -> Yellow Traffic Cone Hazard [4]\n"
+            "- '藍色門' / '行去道門' / '去門口' -> Blue Door [2]\n"
+            "- '紫色嗰張枱' / '紫色嗰個' / '工作枱' -> Lab Tool Bench [7]\n"
+            "- '兜個圈' / '兜一圈' / '轉個圈' -> 360° Circumnavigation Circuit around Obstacle [1]\n"
+            "- '避開' / '唔好撞' / '咪撞' / '繞過' -> Obstacle Avoidance\n"
+            "- '行去' / '行到' / '去' -> Move toward destination\n\n"
             "- Natively interpret the semantic destination, obstacles, and directional requests regardless of the language used.\n"
             "- Always emit deterministic motion primitives using standard English tokens: TURN_LEFT, TURN_RIGHT, FORWARD, BACKWARD, STOP.\n"
             "- In 'explanation', explain the reasoning clearly referencing the detected landmark badges [1]-[7].\n\n"
@@ -180,15 +188,15 @@ class GeminiReasoningService:
         cmd_lower = command_text.lower()
         is_close = tof_distance_mm < 460
 
-        # Multilingual keyword lexicons across 15+ world languages
-        circuit_words = ["once", "circle", "loop", "pusing", "keliling", "satu pusingan", "一圈", "绕一圈", "周回", "vuelta", "tour", "runde", "دورة", "फेरा"]
-        door_words = ["door", "pintu", "门", "藍色門", "蓝色门", "ドア", "puerta", "porte", "tür", "porta", "باب", "கதவு", "दरवाजा", "cửa", "[2]"]
-        dock_words = ["dock", "charg", "cas", "pengecas", "stesen", "充电", "充電", "carga", "recharge", "ladestation", "شحن", "மின்", "चार्ज", "trạm sạc", "[5]"]
-        bench_words = ["bench", "desk", "table", "tool", "meja", "banc", "banco", "tisch", "桌", "工作台", "机", "طاولة", "மேசை", "मेज़", "bàn", "purple", "ungu", "紫色", "紫", "pourpre", "lila", "[7]"]
-        cone_words = ["cone", "hazard", "kon", "cono", "cône", "kegel", "锥", "三角锥", "コーン", "مخروط", "hình nón", "yellow", "kuning", "黄色", "jaune", "amarillo", "[4]"]
-        barrel_words = ["barrel", "tong", "drum", "barril", "baril", "fass", "桶", "油桶", "ドラム", "برميل", "thùng", "orange", "jingga", "橙色", "naranja", "[6]"]
-        corridor_words = ["corridor", "lane", "lorong", "jalan", "走廊", "通道", "通路", "pasillo", "couloir", "korridor", "ممر", "hành lang", "green", "hijau", "绿色", "vert", "[3]"]
-        avoid_words = ["around", "avoid", "bypass", "elak", "hindar", "绕", "绕过", "避开", "避ける", "evita", "éviter", "umgehen", "تجنب", "tránh"]
+        # Multilingual keyword lexicons across 20+ world languages & dialects
+        circuit_words = ["once", "circle", "loop", "pusing", "keliling", "satu pusingan", "一圈", "绕一圈", "兜圈", "兜個圈", "兜一圈", "轉個圈", "周回", "vuelta", "tour", "runde", "دورة", "फेरा"]
+        door_words = ["door", "pintu", "门", "門", "藍色門", "蓝色门", "道門", "門口", "ドア", "puerta", "porte", "tür", "porta", "باب", "கதவு", "दरवाजा", "cửa", "[2]"]
+        dock_words = ["dock", "charg", "cas", "pengecas", "stesen", "充电", "充電", "叉電", "叉電位", "叉電座", "叉電站", "充電位", "carga", "recharge", "ladestation", "شحن", "மின்", "चार्ज", "trạm sạc", "[5]"]
+        bench_words = ["bench", "desk", "table", "tool", "meja", "banc", "banco", "tisch", "桌", "工作台", "工作枱", "紫色枱", "紫色嗰張枱", "紫色嗰個", "张桌子", "张枱", "机", "طاولة", "மேசை", "मेज़", "bàn", "purple", "ungu", "紫色", "紫", "pourpre", "lila", "[7]"]
+        cone_words = ["cone", "hazard", "kon", "cono", "cône", "kegel", "锥", "三角锥", "雪糕筒", "黃色雪糕筒", "コーン", "مخروط", "hình nón", "yellow", "kuning", "黄色", "黃色", "jaune", "amarillo", "[4]"]
+        barrel_words = ["barrel", "tong", "drum", "barril", "baril", "fass", "桶", "油桶", "大鐵桶", "ドラム", "برميل", "thùng", "orange", "jingga", "橙色", "naranja", "[6]"]
+        corridor_words = ["corridor", "lane", "lorong", "jalan", "走廊", "通道", "通路", "右邊通道", "右面走廊", "條路", "pasillo", "couloir", "korridor", "ممر", "hành lang", "green", "hijau", "绿色", "綠色", "vert", "[3]"]
+        avoid_words = ["around", "avoid", "bypass", "elak", "hindar", "绕", "绕过", "避开", "避開", "咪撞", "唔好撞", "兜過", "避ける", "evita", "éviter", "umgehen", "تجنب", "tránh"]
 
         has_circuit = any(w in cmd_lower for w in circuit_words)
         has_door = any(w in cmd_lower for w in door_words)
@@ -289,6 +297,39 @@ class GeminiReasoningService:
                 {"action": "TURN_RIGHT", "degrees": 35, "speed": 160},
                 {"action": "FORWARD", "duration_s": 1.6, "speed": 160},
                 {"action": "TURN_LEFT", "degrees": 35, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        elif any(w in cmd_lower for w in ["stop", "halt", "berhenti", "停", "停止", "停低", "咪郁", "唔好郁", "煞停", "alto", "arrête", "stopp"]):
+            intent = "DIRECTIONAL_MOTION"
+            target = "Immediate Stop Position"
+            waypoint = "Current Pose"
+            explanation = f"[GEMINI REASONING] Emergency/User stop command received ('{command_text}'). Halting motors immediately."
+            commands = [{"action": "STOP", "duration_s": 0, "speed": 0}]
+        elif any(w in cmd_lower for w in ["left", "kiri", "向左", "轉左", "左轉", "偏左", "左邊", "左面", "esquerda", "izquierda", "gauche", "links"]):
+            intent = "DIRECTIONAL_MOTION"
+            target = "Left Flank Heading"
+            waypoint = "Clear left floor"
+            explanation = f"[GEMINI REASONING] Left turn commanded ('{command_text}'). Executing pivot turn."
+            commands = [
+                {"action": "TURN_LEFT", "degrees": 45, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        elif any(w in cmd_lower for w in ["right", "kanan", "向右", "轉右", "右轉", "偏右", "右邊", "右面", "direita", "derecha", "droite", "rechts"]):
+            intent = "DIRECTIONAL_MOTION"
+            target = "Right Flank Heading"
+            waypoint = "Clear right floor"
+            explanation = f"[GEMINI REASONING] Right turn commanded ('{command_text}'). Executing pivot turn."
+            commands = [
+                {"action": "TURN_RIGHT", "degrees": 45, "speed": 160},
+                {"action": "STOP", "duration_s": 0, "speed": 0}
+            ]
+        elif any(w in cmd_lower for w in ["backward", "back", "reverse", "undur", "belakang", "向后", "向後", "行後", "退後", "後退", "倒退", "atrás", "reculer"]):
+            intent = "DIRECTIONAL_MOTION"
+            target = "Rear Clearance Zone"
+            waypoint = "Reverse Path"
+            explanation = f"[GEMINI REASONING] Reverse motion commanded ('{command_text}'). Backing up."
+            commands = [
+                {"action": "BACKWARD", "duration_s": 1.2, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
         else:

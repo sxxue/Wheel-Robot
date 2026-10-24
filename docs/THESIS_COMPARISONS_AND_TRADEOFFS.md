@@ -99,7 +99,8 @@
 | *NLP & Reasoning* | Prompt Architecture | Rigid Template Priming vs. Intent-Aware Prompt Classification | **Intent-Aware Classification Selected**: Avoids "template anchoring" where the model assumes every command must head toward a predefined landmark. Differentiates between *Target-Driven Navigation* (reach door) and *Pure Obstacle Bypass* (circumnavigate and resume heading). |
 
 | *Scene Complexity* | Benchmark Testing Suite | Sparse 3-Object Scene vs. Dense 7-Object Multi-Landmark Environment | **Dense 7-Object Suite Selected**: Expands beyond basic obstacle/door setup to include hazards (traffic cone), secondary obstacles (safety barrel), alternative targets (charging dock, lab tool bench), and clearance corridors for realistic FYP2 evaluation. |
-| *Voice & NLP* | Speech & Language Scope | Monolingual English vs. Polyglot Multilingual Voice Architecture (19 Languages) | **Polyglot Multilingual Selected**: Integrates Web Speech API language selection across 19 world languages (including Bahasa Melayu, Mandarin, Cantonese, Japanese, Arabic, Tamil, Spanish, German, French, etc.) paired with zero-shot multilingual VLM semantic parsing. |
+| *Voice & NLP* | Speech & Language Scope | Monolingual English vs. Polyglot Multilingual Voice Architecture (20 Locales) | **Polyglot Multilingual Selected**: Integrates Web Speech API language selection across 20 world languages (including Bahasa Melayu, Mandarin, Cantonese, Japanese, Arabic, Tamil, Spanish, German, French, etc.) paired with zero-shot multilingual VLM semantic parsing. |
+| *Dialect Acoustic Engineering* | Cantonese Speech Recognition | Naive `zh-HK` Locale vs. Dedicated BCP-47 `yue-Hant-HK` + Colloquial Lexicons | **`yue-Hant-HK` Selected**: `zh-HK` in Chromium erroneously routes to Mandarin (`cmn-Hans-HK`), causing Cantonese spoken queries to be transcribed as Mandarin or fail. `yue-Hant-HK` activates genuine Cantonese acoustic models and enables native regional grounding (`雪糕筒`, `叉電位`, `行去`, `避開`). |
 
 ---
 
@@ -152,7 +153,19 @@
 | **Speech-to-Intent Pipeline** | Speech -> Fixed English Keyword Matching. | **Speech-to-VLM End-to-End Grounding**: Transcribes in native language -> VLM reasons natively over visual scene without machine-translation loss. |
 | **Deterministic Robot Primitives** | Output English tokens directly. | **Decoupled Architecture**: High-level commands accepted in any language, but robot primitive execution tokens remain universal English (`TURN_LEFT`, `TURN_RIGHT`, `FORWARD`, `STOP`). |
 | **Cross-Lingual Landmark Grounding** | Requires exact object names (*"blue door"*). | **Zero-Shot Semantic Binding**: Automatically binds *"pintu biru"*, *"蓝色门"*, *"青いドア"*, and *"puerta azul"* to the exact physical Set-of-Mark identifier `[2]`. |
-| **Thesis Significance** | Standard academic prototype with narrow applicability. | **High Human-Robot Interaction (HRI) Impact**: Demonstrates true universal human-robot collaboration across diverse cultural and linguistic backgrounds. |
+---
+
+## 12. Dialectal Acoustic Engineering: Generic `zh-HK` vs. BCP-47 `yue-Hant-HK` for Cantonese Speech Recognition
+*For Thesis Chapter 3 (Multilingual Speech Recognition & Acoustic Modelling) & Chapter 4 (Experimental Results & Dialect Handling)*
+
+| Technical Dimension | Generic `zh-HK` Tag (Naive Implementation) | BCP-47 `yue-Hant-HK` Tag + Dialect Grounding [Selected] |
+| :--- | :--- | :--- |
+| **Acoustic Model Binding in Chromium** | **Mandarin Model Default**: Chromium / Google Web Speech API routes `zh-HK` to `cmn-Hans-HK` (Hong Kong Mandarin) or generic Standard Mandarin. Spoken Cantonese phonemes are matched against Mandarin pinyin/syllabaries. | **Dedicated Cantonese Acoustic Model**: `yue-Hant-HK` explicitly activates Google's Hong Kong Cantonese acoustic and language model, trained on Cantonese phonology and tone systems (Jyutping/Yale). |
+| **Transcription Behavior** | Fails or transcribes spoken Cantonese into Standard Mandarin characters (e.g., converts spoken *"行去"* [hang heoi] into *"走去"* or mismatched homophones). | Accurately produces colloquial Cantonese written forms (e.g., *"行去藍色門"*, *"避開個障礙物"*, *"去叉電位"*). |
+| **Colloquial Dialect Grounding (VLM & Fallback)** | Assumes standard written Chinese terms (e.g., `交通锥` for cone, `充电` for charging). Fails on regional colloquial vocabulary. | **Explicit Cantonese Lexicon Mapping**: <br>• Traffic Cone: `雪糕筒` / `黃色雪糕筒` -> `[4] Yellow Cone`<br>• Charging Dock: `叉電` / `叉電位` / `叉電站` -> `[5] Charging Station`<br>• Destination Motion: `行去` / `去到` -> Target Navigation<br>• Avoidance: `避開` / `咪撞` / `唔好撞` -> Obstacle Avoidance<br>• Circumnavigation: `兜個圈` / `兜一圈` -> 360° Circuit Trajectory |
+| **Directional Motion Execution** | Directional commands in Cantonese (`轉左`, `轉右`, `直行`, `停低`) produce unknown intent errors. | Natively maps Cantonese directional primitives directly to robot hardware primitives (`TURN_LEFT`, `TURN_RIGHT`, `FORWARD`, `STOP`). |
+| **Client-Side Cache Resilience** | Browser caching of static JS files risks executing stale language codes. | Dynamic version query busting (`app.js?v=2.2_cantonese`) combined with `normalizeLanguageCode()` client-side mapping. |
+| **Thesis Impact** | Superficially claims "Cantonese support" that actually fails in practical user trials. | **Rigorous Engineering Proof**: Solves the real-world subtle distinction between regional national standards and regional spoken dialects in Voice HRI. |
 
 
 

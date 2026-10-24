@@ -60,6 +60,22 @@ class DashboardController {
     this.dpadBtns = document.querySelectorAll(".dpad-btn");
   }
 
+  normalizeLanguageCode(code) {
+    if (!code) return "en-US";
+    const c = code.toLowerCase();
+    // In Chromium / Chrome Web Speech API, Cantonese MUST use 'yue-Hant-HK' (not zh-HK)
+    if (c === "zh-hk" || c === "cantonese" || c === "yue" || c.startsWith("yue")) {
+      return "yue-Hant-HK";
+    }
+    if (c === "zh-tw" || c === "cmn-hant-tw") {
+      return "zh-TW";
+    }
+    if (c === "zh-cn" || c === "cmn-hans-cn" || c === "chinese") {
+      return "zh-CN";
+    }
+    return code;
+  }
+
   initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -67,13 +83,14 @@ class DashboardController {
       this.speechRecognizer.continuous = false;
       this.speechRecognizer.interimResults = true;
       this.currentLang = this.voiceLangSelect ? this.voiceLangSelect.value : "en-US";
-      this.speechRecognizer.lang = this.currentLang;
+      this.speechRecognizer.lang = this.normalizeLanguageCode(this.currentLang);
 
       this.speechRecognizer.onstart = () => {
         this.isRecording = true;
         this.btnMic.classList.add("recording");
         const langText = this.voiceLangSelect ? this.voiceLangSelect.options[this.voiceLangSelect.selectedIndex].text : "English";
-        this.micStatusText.innerText = `🎙️ Listening in ${langText}... Speak your command.`;
+        this.micStatusText.innerText = `🎙️ Listening in ${langText} [${this.speechRecognizer.lang}]... Speak your command.`;
+        this.log(`🎙️ Speech recognition active: ${this.speechRecognizer.lang} (${langText})`);
       };
 
       this.speechRecognizer.onresult = (event) => {
@@ -82,6 +99,7 @@ class DashboardController {
           transcript += event.results[i][0].transcript;
         }
         this.commandInput.value = transcript;
+        this.log(`🗣️ Transcribed [${this.speechRecognizer.lang}]: "${transcript}"`);
       };
 
       this.speechRecognizer.onerror = (event) => {
@@ -109,7 +127,7 @@ class DashboardController {
       try {
         if (this.voiceLangSelect) {
           this.currentLang = this.voiceLangSelect.value;
-          this.speechRecognizer.lang = this.currentLang;
+          this.speechRecognizer.lang = this.normalizeLanguageCode(this.currentLang);
         }
         this.speechRecognizer.start();
       } catch (e) {
@@ -135,11 +153,11 @@ class DashboardController {
       this.voiceLangSelect.addEventListener("change", () => {
         this.currentLang = this.voiceLangSelect.value;
         if (this.speechRecognizer) {
-          this.speechRecognizer.lang = this.currentLang;
+          this.speechRecognizer.lang = this.normalizeLanguageCode(this.currentLang);
         }
         const langText = this.voiceLangSelect.options[this.voiceLangSelect.selectedIndex].text;
         this.micStatusText.innerText = `Language set to ${langText}. Click mic to speak.`;
-        this.log(`🌐 Speech recognition language switched to ${this.currentLang} (${langText})`);
+        this.log(`🌐 Speech recognition language switched to ${this.speechRecognizer.lang} (${langText})`);
       });
     }
 
@@ -159,7 +177,7 @@ class DashboardController {
           this.voiceLangSelect.value = chip.dataset.lang;
           this.currentLang = chip.dataset.lang;
           if (this.speechRecognizer) {
-            this.speechRecognizer.lang = this.currentLang;
+            this.speechRecognizer.lang = this.normalizeLanguageCode(this.currentLang);
           }
         }
         this.commandInput.value = chip.dataset.prompt;

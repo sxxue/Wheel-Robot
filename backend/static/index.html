@@ -98,8 +98,9 @@
               <option value="en-US" selected>🇺🇸 English (United States)</option>
               <option value="en-GB">🇬🇧 English (United Kingdom)</option>
               <option value="ms-MY">🇲🇾 Bahasa Melayu (Malaysia)</option>
-              <option value="zh-CN">🇨🇳 中文 (Mandarin / 普通话)</option>
-              <option value="zh-HK">🇭🇰 粵語 (Cantonese)</option>
+              <option value="zh-CN">🇨🇳 中文 (普通话 / Mandarin)</option>
+              <option value="yue-Hant-HK">🇭🇰 粵語 (Cantonese / 廣東話)</option>
+              <option value="zh-TW">🇹🇼 台灣國語 (Taiwanese Mandarin)</option>
               <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
               <option value="ko-KR">🇰🇷 한국어 (Korean)</option>
               <option value="es-ES">🇪🇸 Español (Spanish)</option>
@@ -133,7 +134,7 @@
             type="text" 
             class="input-box" 
             id="command-input" 
-            placeholder="Speak or type command in any language (e.g. English, Malay, Chinese, Japanese)..."
+            placeholder="Speak or type command in any language (e.g. English, Cantonese, Malay, Mandarin)..."
             autocomplete="off"
           >
           <button class="btn-primary" id="btn-execute">Execute</button>
@@ -142,21 +143,27 @@
         <!-- Quick Prompts Suggestions -->
         <div class="quick-prompts-wrapper">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span class="quick-prompts-label">Quick Test Scenarios (Multilingual):</span>
-            <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">19 LANGUAGES ACTIVE</span>
+            <span class="quick-prompts-label">Quick Test Scenarios (Multilingual & Cantonese):</span>
+            <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">20 LOCALES ACTIVE</span>
           </div>
           <div class="chips-row">
             <button class="prompt-chip" data-prompt="Avoid obstacle [1] and reach blue door [2]" data-lang="en-US">
               🇺🇸 "Avoid obstacle [1] and reach blue door [2]"
             </button>
+            <button class="prompt-chip" data-prompt="行去藍色門" data-lang="yue-Hant-HK">
+              🇭🇰 "行去藍色門" (Cantonese)
+            </button>
+            <button class="prompt-chip" data-prompt="避開個障礙物行去叉電位" data-lang="yue-Hant-HK">
+              🇭🇰 "避開個障礙物行去叉電位" (Cantonese)
+            </button>
+            <button class="prompt-chip" data-prompt="兜個圈去紫色嗰張枱後面" data-lang="yue-Hant-HK">
+              🇭🇰 "兜個圈去紫色嗰張枱後面" (Cantonese)
+            </button>
             <button class="prompt-chip" data-prompt="Elak halangan dan pergi ke pintu biru" data-lang="ms-MY">
               🇲🇾 "Elak halangan dan pergi ke pintu biru"
             </button>
             <button class="prompt-chip" data-prompt="绕过障碍物到达蓝色门" data-lang="zh-CN">
-              🇨🇳 "绕过障碍物到达蓝色门"
-            </button>
-            <button class="prompt-chip" data-prompt="Navigate to charging dock [5]" data-lang="en-US">
-              🇺🇸 "Navigate to charging dock [5]"
+              🇨🇳 "绕过障碍物到达蓝色门" (Mandarin)
             </button>
             <button class="prompt-chip" data-prompt="Pergi ke stesen pengecas" data-lang="ms-MY">
               🇲🇾 "Pergi ke stesen pengecas"
@@ -166,9 +173,6 @@
             </button>
             <button class="prompt-chip" data-prompt="Evita el obstáculo y ve a la puerta azul" data-lang="es-ES">
               🇪🇸 "Evita el obstáculo y ve a la puerta azul"
-            </button>
-            <button class="prompt-chip" data-prompt="Bypass cone [4] to lab bench [7]" data-lang="en-US">
-              🇺🇸 "Bypass cone [4] to lab bench [7]"
             </button>
           </div>
         </div>
@@ -256,6 +260,6 @@
     </section>
   </div>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=2.2_cantonese"></script>
 </body>
 </html>
