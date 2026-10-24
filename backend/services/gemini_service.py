@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import logging
+import asyncio
 from typing import Dict, Any, List
 from PIL import Image
 import io
@@ -13,36 +14,41 @@ logger = logging.getLogger(__name__)
 class GeminiReasoningService:
     """
     Google Gemini Multimodal Vision & Reasoning Service
-    Uses Gemini 1.5 Flash to inspect Set-of-Mark (SoM) annotated images
+    Uses Gemini (gemini-3.8-flash) to inspect Set-of-Mark (SoM) annotated scenes
     and output deterministic JSON navigation sequences for the wheeled robot.
     """
 
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY", "")
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
+        self.model_name = settings.GEMINI_MODEL or os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
         self.client = None
         self.is_ready = False
 
         self._initialize_client()
 
     def _initialize_client(self):
-        if not self.api_key or self.api_key.startswith("AIzaSyYourCopiedKey"):
+        if not self.api_key or self.api_key.startswith("your_gemini"):
             logger.info("Gemini API key not configured yet. Running in simulation fallback mode.")
             self.is_ready = False
             return
 
         try:
+            # Prefer modern google.genai SDK
+            from google import genai
+            self.client = genai.Client(api_key=self.api_key)
+            self.is_ready = True
+            logger.info(f"✅ Google Gemini Client (google.genai) initialized with model '{self.model_name}'!")
+            return
+        except ImportError:
+            pass
+
+        try:
+            # Fallback to legacy google.generativeai
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config={
-                    "response_mime_type": "application/json",
-                    "temperature": 0.2,
-                }
-            )
+            self.model = genai.GenerativeModel(model_name=self.model_name)
             self.is_ready = True
-            logger.info(f"✅ Google Gemini Model ({self.model_name}) initialized successfully!")
+            logger.info(f"✅ Google Gemini Model ({self.model_name}) initialized with google.generativeai!")
         except Exception as e:
             logger.warning(f"Failed to initialize Google Gemini client: {e}")
             self.is_ready = False
@@ -58,9 +64,9 @@ class GeminiReasoningService:
         Sends the Set-of-Mark image, VL53L0X distance, and natural language command to Gemini.
         Returns a structured JSON motion plan.
         """
-        # Re-check key in case it was updated dynamically in .env
         if not self.is_ready:
-            self.api_key = os.getenv("GEMINI_API_KEY", "")
+            self.api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
+            self.model_name = settings.GEMINI_MODEL or os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
             self._initialize_client()
 
         if not self.is_ready:
@@ -101,9 +107,36 @@ class GeminiReasoningService:
                 logger.warning(f"Failed to decode image for Gemini: {e}")
 
         try:
-            response = self.model.generate_content(content_parts)
-            response_json = json.loads(response.text)
-            response_json["provider"] = "Google Gemini 1.5 Flash"
+            # Use non-blocking async execution
+            if hasattr(self, "client") and self.client:
+                from google.genai import types
+                
+                def _call_genai():
+                    return self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=content_parts,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.2
+                        )
+                    )
+                response = await asyncio.to_thread(_call_genai)
+            else:
+                def _call_legacy():
+                    return self.model.generate_content(content_parts)
+                response = await asyncio.to_thread(_call_legacy)
+
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+            raw_text = raw_text.strip()
+
+            response_json = json.loads(raw_text)
+            response_json["provider"] = f"Google Gemini ({self.model_name})"
             return response_json
         except Exception as e:
             logger.error(f"Error invoking Gemini API: {e}. Falling back to simulated reasoning.")
