@@ -86,6 +86,13 @@ class GeminiReasoningService:
             f"User Natural Language Command: '{command_text}'\n"
             f"Current Front VL53L0X ToF Distance: {tof_distance_mm} mm\n"
             f"Detected Marks Metadata: {json.dumps(som_metadata)}\n\n"
+            "MULTILINGUAL NATURAL LANGUAGE CAPABILITY:\n"
+            "The User Command may be issued in ANY of 19+ languages (e.g. English, Bahasa Melayu, 中文 Mandarin/Cantonese, "
+            "日本語 Japanese, 한국어 Korean, Español, Français, Deutsch, العربية Arabic, हिन्दी Hindi, தமிழ் Tamil, "
+            "Bahasa Indonesia, Русский, Português, Italiano, Tiếng Việt, ไทย, etc.).\n"
+            "- Natively interpret the semantic destination, obstacles, and directional requests regardless of the language used.\n"
+            "- Always emit deterministic motion primitives using standard English tokens: TURN_LEFT, TURN_RIGHT, FORWARD, BACKWARD, STOP.\n"
+            "- In 'explanation', explain the reasoning clearly referencing the detected landmark badges [1]-[7].\n\n"
             "INTENT-AWARE NAVIGATION RULES:\n"
             "1. CLASSIFY THE USER'S INTENT & PHRASING:\n"
             "   A) COMPOUND SEQUENTIAL ACTIONS (e.g. 'go round obstacle once and go to the blue door', 'loop around [1] then reach [2]'):\n"
@@ -173,12 +180,24 @@ class GeminiReasoningService:
         cmd_lower = command_text.lower()
         is_close = tof_distance_mm < 460
 
-        has_circuit = "once" in cmd_lower or "circle" in cmd_lower or "loop" in cmd_lower
-        has_door = "door" in cmd_lower or "[2]" in cmd_lower
-        has_dock = "dock" in cmd_lower or "charg" in cmd_lower or "[5]" in cmd_lower
-        has_bench = "bench" in cmd_lower or "desk" in cmd_lower or "table" in cmd_lower or "tool" in cmd_lower or "[7]" in cmd_lower
-        has_cone = "cone" in cmd_lower or "[4]" in cmd_lower
-        has_barrel = "barrel" in cmd_lower or "[6]" in cmd_lower
+        # Multilingual keyword lexicons across 15+ world languages
+        circuit_words = ["once", "circle", "loop", "pusing", "keliling", "satu pusingan", "一圈", "绕一圈", "周回", "vuelta", "tour", "runde", "دورة", "फेरा"]
+        door_words = ["door", "pintu", "门", "藍色門", "蓝色门", "ドア", "puerta", "porte", "tür", "porta", "باب", "கதவு", "दरवाजा", "cửa", "[2]"]
+        dock_words = ["dock", "charg", "cas", "pengecas", "stesen", "充电", "充電", "carga", "recharge", "ladestation", "شحن", "மின்", "चार्ज", "trạm sạc", "[5]"]
+        bench_words = ["bench", "desk", "table", "tool", "meja", "banc", "banco", "tisch", "桌", "工作台", "机", "طاولة", "மேசை", "मेज़", "bàn", "purple", "ungu", "紫色", "紫", "pourpre", "lila", "[7]"]
+        cone_words = ["cone", "hazard", "kon", "cono", "cône", "kegel", "锥", "三角锥", "コーン", "مخروط", "hình nón", "yellow", "kuning", "黄色", "jaune", "amarillo", "[4]"]
+        barrel_words = ["barrel", "tong", "drum", "barril", "baril", "fass", "桶", "油桶", "ドラム", "برميل", "thùng", "orange", "jingga", "橙色", "naranja", "[6]"]
+        corridor_words = ["corridor", "lane", "lorong", "jalan", "走廊", "通道", "通路", "pasillo", "couloir", "korridor", "ممر", "hành lang", "green", "hijau", "绿色", "vert", "[3]"]
+        avoid_words = ["around", "avoid", "bypass", "elak", "hindar", "绕", "绕过", "避开", "避ける", "evita", "éviter", "umgehen", "تجنب", "tránh"]
+
+        has_circuit = any(w in cmd_lower for w in circuit_words)
+        has_door = any(w in cmd_lower for w in door_words)
+        has_dock = any(w in cmd_lower for w in dock_words)
+        has_bench = any(w in cmd_lower for w in bench_words)
+        has_cone = any(w in cmd_lower for w in cone_words)
+        has_barrel = any(w in cmd_lower for w in barrel_words)
+        has_corridor = any(w in cmd_lower for w in corridor_words)
+        has_avoid = any(w in cmd_lower for w in avoid_words)
 
         if has_circuit and has_door:
             intent = "COMPOUND_CIRCUIT_AND_TARGET"
@@ -257,7 +276,7 @@ class GeminiReasoningService:
                 {"action": "FORWARD", "duration_s": 1.8, "speed": 160},
                 {"action": "STOP", "duration_s": 0, "speed": 0}
             ]
-        elif "around" in cmd_lower or "avoid" in cmd_lower:
+        elif has_avoid:
             intent = "OBSTACLE_BYPASS"
             target = "Clear corridor space past center obstacle [1]"
             waypoint = "[3] Free Corridor"

@@ -39,6 +39,7 @@ class DashboardController {
     this.micStatusText = document.getElementById("mic-status-text");
     this.commandInput = document.getElementById("command-input");
     this.btnExecute = document.getElementById("btn-execute");
+    this.voiceLangSelect = document.getElementById("voice-lang-select");
     this.quickChips = document.querySelectorAll(".prompt-chip");
 
     // Motion Plan
@@ -65,12 +66,14 @@ class DashboardController {
       this.speechRecognizer = new SpeechRecognition();
       this.speechRecognizer.continuous = false;
       this.speechRecognizer.interimResults = true;
-      this.speechRecognizer.lang = "en-US";
+      this.currentLang = this.voiceLangSelect ? this.voiceLangSelect.value : "en-US";
+      this.speechRecognizer.lang = this.currentLang;
 
       this.speechRecognizer.onstart = () => {
         this.isRecording = true;
         this.btnMic.classList.add("recording");
-        this.micStatusText.innerText = "Listening... Speak your command clearly.";
+        const langText = this.voiceLangSelect ? this.voiceLangSelect.options[this.voiceLangSelect.selectedIndex].text : "English";
+        this.micStatusText.innerText = `🎙️ Listening in ${langText}... Speak your command.`;
       };
 
       this.speechRecognizer.onresult = (event) => {
@@ -104,6 +107,10 @@ class DashboardController {
       this.speechRecognizer.stop();
     } else {
       try {
+        if (this.voiceLangSelect) {
+          this.currentLang = this.voiceLangSelect.value;
+          this.speechRecognizer.lang = this.currentLang;
+        }
         this.speechRecognizer.start();
       } catch (e) {
         console.error(e);
@@ -114,13 +121,27 @@ class DashboardController {
   stopRecording() {
     this.isRecording = false;
     this.btnMic.classList.remove("recording");
-    this.micStatusText.innerText = "Click microphone or type command below";
+    const langText = this.voiceLangSelect ? this.voiceLangSelect.options[this.voiceLangSelect.selectedIndex].text : "your language";
+    this.micStatusText.innerText = `Ready in ${langText}. Click mic or type command.`;
   }
 
   bindEvents() {
     // Mode toggles
     this.tabSom.addEventListener("click", () => this.switchView("som"));
     this.tabRaw.addEventListener("click", () => this.switchView("raw"));
+
+    // Language dropdown change
+    if (this.voiceLangSelect) {
+      this.voiceLangSelect.addEventListener("change", () => {
+        this.currentLang = this.voiceLangSelect.value;
+        if (this.speechRecognizer) {
+          this.speechRecognizer.lang = this.currentLang;
+        }
+        const langText = this.voiceLangSelect.options[this.voiceLangSelect.selectedIndex].text;
+        this.micStatusText.innerText = `Language set to ${langText}. Click mic to speak.`;
+        this.log(`🌐 Speech recognition language switched to ${this.currentLang} (${langText})`);
+      });
+    }
 
     // Mic click
     this.btnMic.addEventListener("click", () => this.toggleVoice());
@@ -134,6 +155,13 @@ class DashboardController {
     // Quick chips
     this.quickChips.forEach((chip) => {
       chip.addEventListener("click", () => {
+        if (chip.dataset.lang && this.voiceLangSelect) {
+          this.voiceLangSelect.value = chip.dataset.lang;
+          this.currentLang = chip.dataset.lang;
+          if (this.speechRecognizer) {
+            this.speechRecognizer.lang = this.currentLang;
+          }
+        }
         this.commandInput.value = chip.dataset.prompt;
         this.executeCommand();
       });

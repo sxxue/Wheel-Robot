@@ -99,6 +99,7 @@
 | *NLP & Reasoning* | Prompt Architecture | Rigid Template Priming vs. Intent-Aware Prompt Classification | **Intent-Aware Classification Selected**: Avoids "template anchoring" where the model assumes every command must head toward a predefined landmark. Differentiates between *Target-Driven Navigation* (reach door) and *Pure Obstacle Bypass* (circumnavigate and resume heading). |
 
 | *Scene Complexity* | Benchmark Testing Suite | Sparse 3-Object Scene vs. Dense 7-Object Multi-Landmark Environment | **Dense 7-Object Suite Selected**: Expands beyond basic obstacle/door setup to include hazards (traffic cone), secondary obstacles (safety barrel), alternative targets (charging dock, lab tool bench), and clearance corridors for realistic FYP2 evaluation. |
+| *Voice & NLP* | Speech & Language Scope | Monolingual English vs. Polyglot Multilingual Voice Architecture (19 Languages) | **Polyglot Multilingual Selected**: Integrates Web Speech API language selection across 19 world languages (including Bahasa Melayu, Mandarin, Cantonese, Japanese, Arabic, Tamil, Spanish, German, French, etc.) paired with zero-shot multilingual VLM semantic parsing. |
 
 ---
 
@@ -138,6 +139,21 @@
 | **Compound Navigation Feasibility** | Limited: Only simple detour maneuvers possible. | **Rich Sequential Missions**: Supports complex natural language tasks like *"bypass the cone [4] to reach the lab bench [7]"* or *"navigate through corridor [3] to the green charging dock [5]"*. |
 | **Visual Set-of-Mark Scalability** | Fixed single color palette. | **Expanded 7-Color Harmonious Palette**: Red, Blue, Green, Yellow/Amber, Cyan/Teal, Orange, and Purple badges with zero color collisions. |
 | **Thesis Impact** | Sufficient only for rudimentary proofs of concept. | **Strong Academic Contribution**: Demonstrates robust zero-shot multi-landmark spatial grounding in thesis defense and experimental evaluations. |
+
+---
+
+## 11. Multilingual Voice & Natural Language Grounding: Monolingual Baseline vs. Polyglot VLM Architecture
+*For Thesis Chapter 2 (Literature Review: Multilingual HRI) & Chapter 3 (Speech & NLP System Architecture)*
+
+| Technical Dimension | Monolingual English Baseline | Polyglot Multimodal Architecture (19 Languages) [Selected] |
+| :--- | :--- | :--- |
+| **Supported Acoustic Models** | Single acoustic grammar (`en-US`). | **19 BCP-47 World Locales**: English (US/UK), Bahasa Melayu, Mandarin, Cantonese, Japanese, Korean, Spanish, French, German, Arabic, Hindi, Tamil, Indonesian, Russian, Portuguese, Italian, Vietnamese, Thai. |
+| **National & Regional Accessibility** | Fails for non-English speakers or regional accents (e.g., Malaysian English, Manglish, Bahasa Melayu). | **Native Malaysian & Global Usability**: Flawlessly supports national language (Bahasa Melayu) and vernacular languages (Mandarin, Tamil) prominent in Malaysia (FTKEE context). |
+| **Speech-to-Intent Pipeline** | Speech -> Fixed English Keyword Matching. | **Speech-to-VLM End-to-End Grounding**: Transcribes in native language -> VLM reasons natively over visual scene without machine-translation loss. |
+| **Deterministic Robot Primitives** | Output English tokens directly. | **Decoupled Architecture**: High-level commands accepted in any language, but robot primitive execution tokens remain universal English (`TURN_LEFT`, `TURN_RIGHT`, `FORWARD`, `STOP`). |
+| **Cross-Lingual Landmark Grounding** | Requires exact object names (*"blue door"*). | **Zero-Shot Semantic Binding**: Automatically binds *"pintu biru"*, *"蓝色门"*, *"青いドア"*, and *"puerta azul"* to the exact physical Set-of-Mark identifier `[2]`. |
+| **Thesis Significance** | Standard academic prototype with narrow applicability. | **High Human-Robot Interaction (HRI) Impact**: Demonstrates true universal human-robot collaboration across diverse cultural and linguistic backgrounds. |
+
 
 
 

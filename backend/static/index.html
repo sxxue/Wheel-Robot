@@ -89,13 +89,41 @@
 
         <!-- Voice Microphone Trigger -->
         <div class="voice-section">
+          <!-- Multilingual Voice Selector (19 Languages) -->
+          <div class="language-selector-wrapper">
+            <span class="lang-label">
+              <span>🌐</span> Voice Language:
+            </span>
+            <select id="voice-lang-select" class="lang-select" title="Select Voice Recognition Language">
+              <option value="en-US" selected>🇺🇸 English (United States)</option>
+              <option value="en-GB">🇬🇧 English (United Kingdom)</option>
+              <option value="ms-MY">🇲🇾 Bahasa Melayu (Malaysia)</option>
+              <option value="zh-CN">🇨🇳 中文 (Mandarin / 普通话)</option>
+              <option value="zh-HK">🇭🇰 粵語 (Cantonese)</option>
+              <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
+              <option value="ko-KR">🇰🇷 한국어 (Korean)</option>
+              <option value="es-ES">🇪🇸 Español (Spanish)</option>
+              <option value="fr-FR">🇫🇷 Français (French)</option>
+              <option value="de-DE">🇩🇪 Deutsch (German)</option>
+              <option value="ar-SA">🇸🇦 العربية (Arabic)</option>
+              <option value="hi-IN">🇮🇳 हिन्दी (Hindi)</option>
+              <option value="ta-MY">🇲🇾 தமிழ் (Tamil / Malaysia)</option>
+              <option value="id-ID">🇮🇩 Bahasa Indonesia</option>
+              <option value="ru-RU">🇷🇺 Русский (Russian)</option>
+              <option value="pt-BR">🇧🇷 Português (Brazil)</option>
+              <option value="it-IT">🇮🇹 Italiano (Italian)</option>
+              <option value="vi-VN">🇻🇳 Tiếng Việt (Vietnamese)</option>
+              <option value="th-TH">🇹🇭 ไทย (Thai)</option>
+            </select>
+          </div>
+
           <div class="mic-button-wrapper">
-            <button class="mic-button" id="btn-mic" title="Click to speak command">
+            <button class="mic-button" id="btn-mic" title="Click to speak command in selected language">
               🎙️
             </button>
           </div>
           <div class="voice-status-text" id="mic-status-text">
-            Click microphone or type command below
+            Click microphone or type command in any language
           </div>
         </div>
 
@@ -105,7 +133,7 @@
             type="text" 
             class="input-box" 
             id="command-input" 
-            placeholder="e.g., Avoid the obstacle and reach the blue door..."
+            placeholder="Speak or type command in any language (e.g. English, Malay, Chinese, Japanese)..."
             autocomplete="off"
           >
           <button class="btn-primary" id="btn-execute">Execute</button>
@@ -113,22 +141,34 @@
 
         <!-- Quick Prompts Suggestions -->
         <div class="quick-prompts-wrapper">
-          <span class="quick-prompts-label">Quick Test Scenarios:</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="quick-prompts-label">Quick Test Scenarios (Multilingual):</span>
+            <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">19 LANGUAGES ACTIVE</span>
+          </div>
           <div class="chips-row">
-            <button class="prompt-chip" data-prompt="Avoid the obstacle and reach the blue door">
-              "Avoid obstacle [1] and reach blue door [2]"
+            <button class="prompt-chip" data-prompt="Avoid obstacle [1] and reach blue door [2]" data-lang="en-US">
+              🇺🇸 "Avoid obstacle [1] and reach blue door [2]"
             </button>
-            <button class="prompt-chip" data-prompt="Navigate to the charging dock">
-              "Navigate to charging dock [5]"
+            <button class="prompt-chip" data-prompt="Elak halangan dan pergi ke pintu biru" data-lang="ms-MY">
+              🇲🇾 "Elak halangan dan pergi ke pintu biru"
             </button>
-            <button class="prompt-chip" data-prompt="Drive past yellow cone to the lab bench">
-              "Bypass cone [4] to lab bench [7]"
+            <button class="prompt-chip" data-prompt="绕过障碍物到达蓝色门" data-lang="zh-CN">
+              🇨🇳 "绕过障碍物到达蓝色门"
             </button>
-            <button class="prompt-chip" data-prompt="Go round the obstacle once">
-              "Go round obstacle [1] once"
+            <button class="prompt-chip" data-prompt="Navigate to charging dock [5]" data-lang="en-US">
+              🇺🇸 "Navigate to charging dock [5]"
             </button>
-            <button class="prompt-chip" data-prompt="Turn right into open corridor">
-              "Turn right into corridor [3]"
+            <button class="prompt-chip" data-prompt="Pergi ke stesen pengecas" data-lang="ms-MY">
+              🇲🇾 "Pergi ke stesen pengecas"
+            </button>
+            <button class="prompt-chip" data-prompt="青いドアに向かってください" data-lang="ja-JP">
+              🇯🇵 "青いドアに向かってください"
+            </button>
+            <button class="prompt-chip" data-prompt="Evita el obstáculo y ve a la puerta azul" data-lang="es-ES">
+              🇪🇸 "Evita el obstáculo y ve a la puerta azul"
+            </button>
+            <button class="prompt-chip" data-prompt="Bypass cone [4] to lab bench [7]" data-lang="en-US">
+              🇺🇸 "Bypass cone [4] to lab bench [7]"
             </button>
           </div>
         </div>
